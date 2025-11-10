@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: funds
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    command: pnpm run start:dev
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - DB_NAME=funds
+      - PORT=3000
+    ports:
+      - '3001:3001'
+    depends_on:
+      - db
+    volumes:
+      - ./:/app
+
+volumes:
+  db-data:

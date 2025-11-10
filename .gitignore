@@ -1,0 +1,7 @@
+/backend/.env
+/backend/.env.example
+/backend/node_modules
+/front/node_modules
+/backend/logs
+/backend/dist
+/.idea
