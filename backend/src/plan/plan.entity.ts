@@ -5,6 +5,9 @@ export class Plan {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ length: 8, unique: true, nullable: true })
+  shortId: string;
+
   @Column({ length: 200 })
   name: string;
 

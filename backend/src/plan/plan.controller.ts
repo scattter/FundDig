@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { IsString, IsOptional, MaxLength } from 'class-validator';
 
@@ -33,5 +33,15 @@ export class PlanController {
   @Get(':id')
   async get(@Param('id') id: string) {
     return this.service.findOne(id);
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() body: Partial<CreatePlanDto>) {
+    return this.service.update(id, body as any);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.service.remove(id);
   }
 }

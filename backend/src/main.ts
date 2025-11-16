@@ -18,8 +18,15 @@ async function bootstrap() {
 
   // Ensure app and providers initialized
   await app.init();
-  
-  
+
+  // 检查数据库连接
+  const dataSource = app.get(DataSource);
+  if (!dataSource.isInitialized) {
+    await dataSource.initialize();
+  }
+  await dataSource.query('SELECT 1');
+  logger.log('数据库连接已成功');
+
   const port = process.env.PORT || 3001;
 
   // Wait for Nest to start

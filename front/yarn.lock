@@ -264,6 +264,11 @@
   dependencies:
     "@radix-ui/react-compose-refs" "1.1.2"
 
+"@remix-run/router@1.23.0":
+  version "1.23.0"
+  resolved "https://mirrors.tencent.com/npm/@remix-run/router/-/router-1.23.0.tgz#35390d0e7779626c026b11376da6789eb8389242"
+  integrity sha512-O3rHJzAQKamUz1fvE0Qaw0xSFqsA/yafi2iqeE0pvdFtCO1viYx8QL6f3Ln/aCCTLxs68SLf0KPM9eSeM8yBnA==
+
 "@rsbuild/core@^0.4.3":
   version "0.4.15"
   resolved "https://mirrors.cloud.tencent.com/npm/@rsbuild/core/-/core-0.4.15.tgz#89ed00ee482a98be7b3648c00fbd33898a380fb1"
@@ -1102,6 +1107,21 @@ react-refresh@^0.14.0:
   version "0.14.2"
   resolved "https://mirrors.cloud.tencent.com/npm/react-refresh/-/react-refresh-0.14.2.tgz#3833da01ce32da470f1f936b9d477da5c7028bf9"
   integrity sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==
+
+react-router-dom@^6.26.2:
+  version "6.30.1"
+  resolved "https://mirrors.tencent.com/npm/react-router-dom/-/react-router-dom-6.30.1.tgz#da2580c272ddb61325e435478566be9563a4a237"
+  integrity sha512-llKsgOkZdbPU1Eg3zK8lCn+sjD9wMRZZPuzmdWWX5SUs8OFkN5HnFVC0u5KMeMaC9aoancFI/KoLuKPqN+hxHw==
+  dependencies:
+    "@remix-run/router" "1.23.0"
+    react-router "6.30.1"
+
+react-router@6.30.1:
+  version "6.30.1"
+  resolved "https://mirrors.tencent.com/npm/react-router/-/react-router-6.30.1.tgz#ecb3b883c9ba6dbf5d319ddbc996747f4ab9f4c3"
+  integrity sha512-X1m21aEmxGXqENEPG3T6u0Th7g0aS4ZmoNynhbs+Cn+q+QGTLt+d5IQ2bHAXKzKcxGJjxACpVbnYQSCRcfxHlQ==
+  dependencies:
+    "@remix-run/router" "1.23.0"
 
 react@18.2.0:
   version "18.2.0"

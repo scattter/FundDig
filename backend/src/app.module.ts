@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { ResponseInterceptor } from './common/response.interceptor';
+import { AllExceptionFilter } from './common/all-exception.filter';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanModule } from './plan/plan.module';
-import { DatabaseModule } from './database/database.module';
-import { HealthModule } from './health/health.module';
+import { FundModule } from './fund/fund.module';
 
 @Module({
   imports: [
@@ -27,12 +29,12 @@ import { HealthModule } from './health/health.module';
       }),
     }),
 
-    // Database connection monitoring
-    DatabaseModule,
-
     PlanModule,
-    // health endpoint
-    HealthModule,
+    FundModule,
+  ],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
+    { provide: APP_FILTER, useClass: AllExceptionFilter },
   ],
 })
 export class AppModule {}
