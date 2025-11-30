@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from './utils/logger';
 import * as dotenv from 'dotenv';
+dotenv.config();
 import { ValidationPipe } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 

@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import '../styles/globals.scss';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar, Wallet, PieChart as PieIcon, Pencil, Trash2, Plus } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
 type Fund = {
   id: string;
@@ -25,6 +28,27 @@ type FundChange = {
   opAmount: string | null;
 };
 
+type BacktestFundItem = {
+  fundCode: string;
+  fundName: string;
+  percentage: string;
+  amount: string;
+};
+
+type Backtest = {
+  id: string;
+  name: string;
+  totalAmount: string;
+  createdAt: string;
+  funds: {
+    id: string;
+    fundCode: string;
+    fundName: string;
+    percentage: string;
+    amount: string;
+  }[];
+};
+
 function getOpTypeLabel(type: string | null) {
   switch (type) {
     case 'create': return '初次添加';
@@ -36,19 +60,103 @@ function getOpTypeLabel(type: string | null) {
 }
 
 function fmtCN(date: string) {
+  if (!date) return '-';
   try {
     const d = new Date(date);
-    // Subtract 8 hours
-    const d8 = new Date(d.getTime() - 8 * 60 * 60 * 1000);
     return new Intl.DateTimeFormat('zh-CN', {
-      timeZone: 'UTC',
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
       hour12: false,
-    }).format(d8);
+      timeZone: 'Asia/Shanghai'
+    }).format(d);
   } catch {
-    return new Date(date).toLocaleString('zh-CN');
+    return '-';
   }
+}
+
+function BacktestCard({ bt, onEdit, onDelete }: { bt: Backtest; onEdit: (bt: Backtest) => void; onDelete: (id: string) => void }) {
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
+
+  const sortedFunds = [...bt.funds].sort((a, b) => Number(b.percentage) - Number(a.percentage));
+
+  return (
+    <div className="group bg-card rounded-xl border shadow-sm transition-all hover:shadow-md hover:border-primary/20 flex flex-col h-full">
+      <div className="flex flex-col p-4 border-b bg-muted/5 gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="font-semibold text-base tracking-tight text-foreground truncate flex-1" title={bt.name}>
+            {bt.name || '未命名组合'}
+          </h4>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onEdit(bt)}
+              className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+              title="编辑组合"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setConfirming(true)}
+                className="p-1 hover:bg-destructive/10 rounded-full text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                title="删除组合"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+              {confirming && (
+                <div className="absolute right-0 top-full mt-2 z-10 bg-background border rounded-md shadow-lg p-3 min-w-[160px]">
+                  <div className="text-sm mb-3 font-medium">确认删除该组合？</div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      className="border border-input rounded-md px-2 h-7 text-xs bg-background hover:bg-muted"
+                      onClick={() => setConfirming(false)}
+                    >取消</button>
+                    <button
+                      className="bg-destructive text-destructive-foreground rounded-md px-2 h-7 text-xs hover:bg-destructive/90"
+                      onClick={() => {
+                        onDelete(bt.id);
+                        setConfirming(false);
+                      }}
+                    >删除</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{fmtCN(bt.createdAt).split(' ')[0]}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Wallet className="w-3.5 h-3.5" />
+            <span className="font-mono font-medium">¥{Number(bt.totalAmount).toLocaleString('zh-CN')}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 flex-1 min-h-[200px]">
+        <div className="space-y-2">
+          {sortedFunds.map((f, i) => (
+            <div key={i} className="flex items-center justify-between text-sm group/item hover:bg-muted/50 p-1 rounded cursor-default">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                <span className="truncate" title={f.fundName}>{f.fundName}</span>
+              </div>
+              <span className="font-mono text-muted-foreground w-[45px] text-right text-xs flex-shrink-0">{f.percentage}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-4 border-t bg-muted/5 space-y-2">
+        <div className="text-xs font-medium text-muted-foreground">回测时间范围</div>
+      </div>
+    </div>
+  );
 }
 
 export default function PlanDetail() {
@@ -75,6 +183,15 @@ export default function PlanDetail() {
   const [historyList, setHistoryList] = useState<FundChange[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentHistoryFund, setCurrentHistoryFund] = useState<Fund | null>(null);
+
+  const [backtestOpen, setBacktestOpen] = useState(false);
+  const [editingBacktestId, setEditingBacktestId] = useState<string | null>(null);
+  const [backtestName, setBacktestName] = useState('');
+  const [backtestTotal, setBacktestTotal] = useState('10000');
+  const [backtestFunds, setBacktestFunds] = useState<BacktestFundItem[]>([]);
+  const [backtestList, setBacktestList] = useState<Backtest[]>([]);
+  const [backtestSubmitting, setBacktestSubmitting] = useState(false);
+  const [loadingRows, setLoadingRows] = useState<Record<number, boolean>>({});
 
   function openCreate() {
     setCode('');
@@ -112,8 +229,18 @@ export default function PlanDetail() {
       }
     }
 
+    async function loadBacktestsLocal() {
+      try {
+        const res = await fetch(`http://localhost:3001/plans/${id}/backtests`, { signal: ctrl.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        setBacktestList(Array.isArray(data?.result) ? data.result : []);
+      } catch {}
+    }
+
     loadFunds();
     loadPlan();
+    loadBacktestsLocal();
 
     return () => {
       ctrl.abort();
@@ -289,6 +416,174 @@ export default function PlanDetail() {
     }
   }
 
+  function openBacktest() {
+    setEditingBacktestId(null);
+    setBacktestName('');
+    setBacktestTotal('10000');
+    setBacktestFunds([{ fundCode: '', fundName: '', percentage: '', amount: '' }]);
+    setBacktestOpen(true);
+  }
+
+  function openEditBacktest(bt: Backtest) {
+    setEditingBacktestId(bt.id);
+    setBacktestName(bt.name);
+    setBacktestTotal(bt.totalAmount);
+    setBacktestFunds(bt.funds.map(f => ({
+      fundCode: f.fundCode,
+      fundName: f.fundName,
+      percentage: f.percentage,
+      amount: f.amount
+    })));
+    setBacktestOpen(true);
+  }
+
+  function addBacktestRow() {
+    setBacktestFunds([...backtestFunds, { fundCode: '', fundName: '', percentage: '', amount: '' }]);
+  }
+
+  function removeBacktestRow(index: number) {
+    const next = [...backtestFunds];
+    next.splice(index, 1);
+    setBacktestFunds(next);
+  }
+
+  async function updateBacktestRow(index: number, field: keyof BacktestFundItem, value: string) {
+    const next = [...backtestFunds];
+    next[index] = { ...next[index], [field]: value };
+
+    if (field === 'percentage') {
+      const p = Number(value);
+      const t = Number(backtestTotal);
+      if (!Number.isNaN(p) && !Number.isNaN(t)) {
+        next[index].amount = (t * p / 100).toFixed(2);
+      }
+    }
+
+    setBacktestFunds(next);
+
+    if (field === 'fundCode' && value.length === 6) {
+      setLoadingRows((prev) => ({ ...prev, [index]: true }));
+      try {
+        const res = await fetch(`http://localhost:3001/funds/${value}/info`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.result?.name) {
+            setBacktestFunds((prev) => {
+              const newFunds = [...prev];
+              if (newFunds[index]) {
+                newFunds[index] = { ...newFunds[index], fundName: json.result.name };
+              }
+              return newFunds;
+            });
+          }
+        }
+      } catch {
+      } finally {
+        setLoadingRows((prev) => ({ ...prev, [index]: false }));
+      }
+    }
+  }
+
+  function handleTotalChange(val: string) {
+    setBacktestTotal(val);
+    const t = Number(val);
+    if (Number.isNaN(t)) return;
+    const next = backtestFunds.map((f) => {
+      const p = Number(f.percentage);
+      if (!Number.isNaN(p)) {
+        return { ...f, amount: (t * p / 100).toFixed(2) };
+      }
+      return f;
+    });
+    setBacktestFunds(next);
+  }
+
+  async function submitBacktest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!backtestName.trim()) {
+      setMessage('请输入组合名称');
+      return;
+    }
+    const totalP = backtestFunds.reduce((sum, f) => sum + Number(f.percentage || 0), 0);
+    if (Math.abs(totalP - 100) > 0.01) {
+      setMessage(`百分比总和必须为 100% (当前: ${totalP.toFixed(2)}%)`);
+      return;
+    }
+    if (backtestFunds.some((f) => !f.fundCode || f.fundCode.length !== 6)) {
+      setMessage('请填写正确的基金代码');
+      return;
+    }
+    if (Number(backtestTotal) < 1) {
+      setMessage('组合总金额必须大于等于1');
+      return;
+    }
+
+    setBacktestSubmitting(true);
+    try {
+      const url = editingBacktestId 
+        ? `http://localhost:3001/plans/${id}/backtests/${editingBacktestId}`
+        : `http://localhost:3001/plans/${id}/backtests`;
+      const method = editingBacktestId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: backtestName.trim(),
+          totalAmount: Number(backtestTotal),
+          funds: backtestFunds.map((f) => ({
+            fundCode: f.fundCode,
+            fundName: f.fundName,
+            percentage: Number(f.percentage),
+            amount: Number(f.amount),
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(errData.message || 'Request failed');
+      }
+      const data = await res.json();
+      if (editingBacktestId) {
+        setBacktestList((prev) => prev.map(bt => bt.id === editingBacktestId ? data.result : bt));
+        setMessage('更新回测组合成功');
+      } else {
+        setBacktestList((prev) => [data.result, ...prev]);
+        setMessage('创建回测组合成功');
+      }
+      setBacktestOpen(false);
+    } catch (err: any) {
+      setMessage('错误: ' + err.message);
+    } finally {
+      setBacktestSubmitting(false);
+    }
+  }
+
+  async function loadBacktests() {
+    try {
+      const res = await fetch(`http://localhost:3001/plans/${id}/backtests`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setBacktestList(Array.isArray(data?.result) ? data.result : []);
+    } catch {}
+  }
+
+  async function deleteBacktest(btId: string) {
+    try {
+      const res = await fetch(`http://localhost:3001/plans/${id}/backtests/${btId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (data.code === 200 && data.result === true) {
+        setBacktestList((prev) => prev.filter((bt) => bt.id !== btId));
+        setMessage('删除组合成功');
+        // Refresh the list to ensure data consistency
+        loadBacktests();
+      }
+    } catch (err: any) {
+      setMessage('错误: ' + err.message);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto p-8">
@@ -383,6 +678,26 @@ export default function PlanDetail() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-8 mb-40 space-y-6">
+            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <h3>回测组合列表</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {backtestList.map((bt) => (
+                <BacktestCard key={bt.id} bt={bt} onEdit={openEditBacktest} onDelete={deleteBacktest} />
+              ))}
+              <button
+                onClick={openBacktest}
+                className="group flex flex-col items-center justify-center h-full min-h-[300px] rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/5 transition-all gap-4"
+              >
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">创建新组合</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -678,6 +993,156 @@ export default function PlanDetail() {
                   关闭
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+        {backtestOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-background border rounded-md shadow-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-lg font-semibold mb-4">创建回测组合</h2>
+              <form onSubmit={submitBacktest} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    <span className="text-destructive mr-1">*</span>组合名称
+                  </label>
+                  <input
+                    type="text"
+                    value={backtestName}
+                    onChange={(e) => setBacktestName(e.target.value)}
+                    maxLength={50}
+                    required
+                    placeholder="例如：保守型定投组合"
+                    className={cn('flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    <span className="text-destructive mr-1">*</span>组合总金额
+                  </label>
+                  <input
+                    type="number"
+                    value={backtestTotal}
+                    onChange={(e) => handleTotalChange(e.target.value)}
+                    min={1}
+                    step={0.01}
+                    required
+                    className={cn('flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium">基金列表</label>
+                    <button
+                      type="button"
+                      onClick={addBacktestRow}
+                      className={cn('text-xs bg-primary text-primary-foreground px-2 py-1 rounded hover:bg-primary/90')}
+                    >
+                      添加基金
+                    </button>
+                  </div>
+
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="p-2 text-left w-[150px]">
+                            代码 <span className="text-destructive">*</span>
+                          </th>
+                          <th className="p-2 text-left">名称</th>
+                          <th className="p-2 text-left w-[100px]">
+                            百分比(%) <span className="text-destructive">*</span>
+                          </th>
+                          <th className="p-2 text-left w-[120px]">金额</th>
+                          <th className="p-2 text-center w-[60px]">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backtestFunds.map((item, idx) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={item.fundCode}
+                                onChange={(e) => updateBacktestRow(idx, 'fundCode', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="w-full border rounded px-2 py-1"
+                                placeholder="代码"
+                                list={`funds-list-${idx}`}
+                              />
+                              <datalist id={`funds-list-${idx}`}>
+                                {funds.map((f) => (
+                                  <option key={f.id} value={f.fundCode}>
+                                    {f.fundName}
+                                  </option>
+                                ))}
+                              </datalist>
+                            </td>
+                            <td className="p-2 text-muted-foreground">
+                              {loadingRows[idx] ? (
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span className="text-xs">查询中...</span>
+                                </div>
+                              ) : (
+                                item.fundName || '-'
+                              )}
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={item.percentage}
+                                onChange={(e) => updateBacktestRow(idx, 'percentage', e.target.value)}
+                                className="w-full border rounded px-2 py-1"
+                                min={0}
+                                max={100}
+                                step={0.01}
+                              />
+                            </td>
+                            <td className="p-2 text-muted-foreground">{item.amount}</td>
+                            <td className="p-2 text-center">
+                              <button type="button" onClick={() => removeBacktestRow(idx)} className="text-destructive hover:text-destructive/80">
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {backtestFunds.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                              请添加基金
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    当前总占比: {backtestFunds.reduce((sum, f) => sum + Number(f.percentage || 0), 0).toFixed(2)}%
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setBacktestOpen(false)}
+                    className={cn('inline-flex items-center justify-center rounded-md text-sm font-medium', 'border h-10 px-4')}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={backtestSubmitting}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-md text-sm font-medium',
+                      'bg-primary text-primary-foreground h-10 px-4 hover:bg-primary/90'
+                    )}
+                  >
+                    {backtestSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    确定
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

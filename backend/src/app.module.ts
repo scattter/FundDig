@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanModule } from './plan/plan.module';
 import { FundModule } from './fund/fund.module';
 import { RedisModule } from './redis/redis.module';
+import { BacktestModule } from './backtest/backtest.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RedisModule } from './redis/redis.module';
     PlanModule,
     FundModule,
     RedisModule,
+    BacktestModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
