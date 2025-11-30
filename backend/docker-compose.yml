@@ -21,12 +21,21 @@ services:
       - DB_PASS=postgres
       - DB_NAME=funds
       - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     ports:
       - '3001:3001'
     depends_on:
       - db
+      - redis
     volumes:
       - ./:/app
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+    command: ["redis-server", "--appendonly", "yes"]
 
 volumes:
   db-data:

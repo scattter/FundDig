@@ -6,12 +6,10 @@ import PlanDetail from './pages/PlanDetail';
 
 const root = createRoot(document.getElementById('root')!);
 root.render(
-  <React.StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/plan/:id" element={<PlanDetail />} />
       </Routes>
     </BrowserRouter>
-  </React.StrictMode>
 );
