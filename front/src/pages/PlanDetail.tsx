@@ -2,162 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import '../styles/globals.scss';
-import { Loader2, Calendar, Wallet, PieChart as PieIcon, Pencil, Trash2, Plus } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
-
-type Fund = {
-  id: string;
-  fundCode: string;
-  fundName?: string;
-  amount: string;
-  feeRate: string;
-  createdAt: string;
-  changeCount: number;
-};
-
-type FundChange = {
-  id: string;
-  oldAmount: string | null;
-  newAmount: string | null;
-  oldFeeRate: string | null;
-  newFeeRate: string | null;
-  createdAt: string;
-  opType: string | null;
-  opAmount: string | null;
-};
-
-type BacktestFundItem = {
-  fundCode: string;
-  fundName: string;
-  percentage: string;
-  amount: string;
-};
-
-type Backtest = {
-  id: string;
-  name: string;
-  totalAmount: string;
-  createdAt: string;
-  funds: {
-    id: string;
-    fundCode: string;
-    fundName: string;
-    percentage: string;
-    amount: string;
-  }[];
-};
-
-function getOpTypeLabel(type: string | null) {
-  switch (type) {
-    case 'create': return '初次添加';
-    case 'add': return '加仓';
-    case 'reduce': return '减仓';
-    case 'update': return '手动修改';
-    default: return '未知操作';
-  }
-}
-
-function fmtCN(date: string) {
-  if (!date) return '-';
-  try {
-    const d = new Date(date);
-    return new Intl.DateTimeFormat('zh-CN', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Shanghai'
-    }).format(d);
-  } catch {
-    return '-';
-  }
-}
-
-function BacktestCard({ bt, onEdit, onDelete }: { bt: Backtest; onEdit: (bt: Backtest) => void; onDelete: (id: string) => void }) {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [confirming, setConfirming] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
-
-  const sortedFunds = [...bt.funds].sort((a, b) => Number(b.percentage) - Number(a.percentage));
-
-  return (
-    <div className="group bg-card rounded-xl border shadow-sm transition-all hover:shadow-md hover:border-primary/20 flex flex-col h-full">
-      <div className="flex flex-col p-4 border-b bg-muted/5 gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <h4 className="font-semibold text-base tracking-tight text-foreground truncate flex-1" title={bt.name}>
-            {bt.name || '未命名组合'}
-          </h4>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onEdit(bt)}
-              className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-              title="编辑组合"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setConfirming(true)}
-                className="p-1 hover:bg-destructive/10 rounded-full text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-                title="删除组合"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-              {confirming && (
-                <div className="absolute right-0 top-full mt-2 z-10 bg-background border rounded-md shadow-lg p-3 min-w-[160px]">
-                  <div className="text-sm mb-3 font-medium">确认删除该组合？</div>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      className="border border-input rounded-md px-2 h-7 text-xs bg-background hover:bg-muted"
-                      onClick={() => setConfirming(false)}
-                    >取消</button>
-                    <button
-                      className="bg-destructive text-destructive-foreground rounded-md px-2 h-7 text-xs hover:bg-destructive/90"
-                      onClick={() => {
-                        onDelete(bt.id);
-                        setConfirming(false);
-                      }}
-                    >删除</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{fmtCN(bt.createdAt).split(' ')[0]}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Wallet className="w-3.5 h-3.5" />
-            <span className="font-mono font-medium">¥{Number(bt.totalAmount).toLocaleString('zh-CN')}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 flex-1 min-h-[200px]">
-        <div className="space-y-2">
-          {sortedFunds.map((f, i) => (
-            <div key={i} className="flex items-center justify-between text-sm group/item hover:bg-muted/50 p-1 rounded cursor-default">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="truncate" title={f.fundName}>{f.fundName}</span>
-              </div>
-              <span className="font-mono text-muted-foreground w-[45px] text-right text-xs flex-shrink-0">{f.percentage}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 border-t bg-muted/5 space-y-2">
-        <div className="text-xs font-medium text-muted-foreground">回测时间范围</div>
-      </div>
-    </div>
-  );
-}
+import { Loader2, Plus } from 'lucide-react';
+import { FundTable } from '../components/FundTable';
+import { BacktestCard } from '../components/BacktestCard';
+import { HistoryModal } from '../components/HistoryModal';
+import { Fund, FundChange, BacktestFundItem, Backtest } from '../types';
 
 export default function PlanDetail() {
   const { id } = useParams();
@@ -584,6 +433,19 @@ export default function PlanDetail() {
     }
   }
 
+  async function handleRunAI(btId: string, prompt: string): Promise<string> {
+    const res = await fetch(`http://localhost:3001/plans/${id}/backtests/${btId}/ai-analysis`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+    const data = await res.json();
+    return data.result;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto p-8">
@@ -608,77 +470,13 @@ export default function PlanDetail() {
               新增基金
             </button>
           </div>
-          <div className={cn('rounded-md border')}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 w-[200px]">基金名称</th>
-                  <th className="text-left p-3">基金代码</th>
-                  <th className="text-left p-3">持有金额</th>
-                  <th className="text-left p-3 w-[260px]">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {funds.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center text-muted-foreground p-6">暂无数据</td>
-                  </tr>
-                ) : (
-                  funds.map((f) => (
-                    <tr key={f.id} className="border-t">
-                      <td className="p-3 w-[200px] max-w-[200px] truncate" title={f.fundName || ''}>{f.fundName || '-'}</td>
-                      <td className="p-3">{f.fundCode}</td>
-                      <td className="p-3">{Number(f.amount).toFixed(2)}</td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2 relative">
-                          <button
-                            className={cn('border rounded-md px-2 h-8 text-xs')}
-                            onClick={() => openEdit(f)}
-                          >编辑</button>
-                          <button
-                            className={cn('border rounded-md px-2 h-8 text-xs')}
-                            onClick={() => openOp(f)}
-                          >加减仓</button>
-                          <button
-                            className={cn('border rounded-md px-2 h-8 text-xs relative')}
-                            onClick={() => openHistory(f)}
-                          >
-                            记录
-                            {f.changeCount > 0 && (
-                              <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] rounded-full px-1 h-4 flex items-center justify-center min-w-[16px]">
-                                {f.changeCount}
-                              </span>
-                            )}
-                          </button>
-                          <button
-                            className={cn('border rounded-md px-2 h-8 text-xs text-destructive border-destructive')}
-                            onClick={() => setConfirmFundId(confirmFundId === f.id ? null : f.id)}
-                          >
-                            删除
-                          </button>
-                          {confirmFundId === f.id && (
-                            <div className="absolute right-0 top-full mt-2 z-10 bg-background border rounded-md shadow-lg p-3 min-w-[240px]">
-                              <div className="text-sm mb-3">确认删除该基金？</div>
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  className={cn('border border-input rounded-md px-3 h-8 text-xs bg-background hover:bg-muted')}
-                                  onClick={() => setConfirmFundId(null)}
-                                >取消</button>
-                                <button
-                                  className={cn('bg-destructive text-destructive-foreground rounded-md px-3 h-8 text-xs hover:bg-destructive/90')}
-                                  onClick={() => deleteFund(f.id)}
-                                >删除</button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <FundTable
+            funds={funds}
+            onEdit={openEdit}
+            onOp={openOp}
+            onHistory={openHistory}
+            onDelete={deleteFund}
+          />
 
           <div className="mt-8 mb-40 space-y-6">
             <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -686,7 +484,13 @@ export default function PlanDetail() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {backtestList.map((bt) => (
-                <BacktestCard key={bt.id} bt={bt} onEdit={openEditBacktest} onDelete={deleteBacktest} />
+                <BacktestCard 
+                  key={bt.id} 
+                  bt={bt} 
+                  onEdit={openEditBacktest} 
+                  onDelete={deleteBacktest}
+                  onRunAI={handleRunAI}
+                />
               ))}
               <button
                 onClick={openBacktest}
@@ -938,63 +742,13 @@ export default function PlanDetail() {
         )}
 
         {historyOpen && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="bg-background border rounded-md shadow-lg w-full max-w-3xl p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">操作记录 - {currentHistoryFund?.fundName}</h2>
-                <button onClick={() => setHistoryOpen(false)} className="text-muted-foreground hover:text-foreground">
-                  ✕
-                </button>
-              </div>
-              
-              <div className="h-[400px] overflow-y-auto border rounded-md">
-                <table className="w-full text-sm relative">
-                  <thead className="sticky top-0 bg-background z-10 shadow-sm">
-                    <tr className="border-b">
-                      <th className="p-3 text-left w-[180px]">时间</th>
-                      <th className="p-3 text-left">操作类型</th>
-                      <th className="p-3 text-right">操作金额</th>
-                      <th className="p-3 text-right">变更前金额</th>
-                      <th className="p-3 text-right">变更后金额</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyLoading ? (
-                      <tr>
-                        <td colSpan={5} className="text-center p-6">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                        </td>
-                      </tr>
-                    ) : historyList.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center text-muted-foreground p-6">暂无记录</td>
-                      </tr>
-                    ) : (
-                      historyList.map((item) => (
-                        <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
-                          <td className="p-3 text-muted-foreground">{fmtCN(item.createdAt)}</td>
-                          <td className="p-3">{getOpTypeLabel(item.opType)}</td>
-                          <td className="p-3 text-right font-mono">{item.opAmount ? Number(item.opAmount).toFixed(2) : '-'}</td>
-                          <td className="p-3 text-right text-muted-foreground">{item.oldAmount ? Number(item.oldAmount).toFixed(2) : '-'}</td>
-                          <td className="p-3 text-right font-medium">{item.newAmount ? Number(item.newAmount).toFixed(2) : '-'}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end mt-4">
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen(false)}
-                  className={cn('inline-flex items-center justify-center rounded-md text-sm font-medium', 'border h-10 px-4')}
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          </div>
+          <HistoryModal
+            open={historyOpen}
+            loading={historyLoading}
+            list={historyList}
+            currentFund={currentHistoryFund}
+            onClose={() => setHistoryOpen(false)}
+          />
         )}
         {backtestOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">

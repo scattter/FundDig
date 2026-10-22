@@ -24,4 +24,9 @@ export class BacktestController {
   async list(@Param('id') planId: string) {
     return this.service.listByPlan(planId);
   }
+
+  @Post(':btId/ai-analysis')
+  async aiAnalysis(@Param('btId') btId: string, @Body() body: { prompt: string }) {
+    return this.service.aiAnalysis(btId, body.prompt);
+  }
 }
